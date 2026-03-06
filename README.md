@@ -158,3 +158,34 @@ supervisor_route() called
                                                    log to LangSmith
                                                    email SME
                                                    END
+
+
+
+
+
+##### why metadata_loopkup is needeed ?
+
+Invoice arrives with:
+  vendor_name: "Oroboros Solutions Pvt Ltd"
+  gstin:       "29AABCT1332L1ZU"
+  total:       2,36,000 INR
+  rate:        1,500/hr for data engineering
+        |
+        v
+metadata_lookup.get_vendor("29AABCT1332L1ZU")
+  connects to Azure Blob
+  downloads vendors.json
+  searches for matching GSTIN
+  returns vendor record
+        |
+        v
+metadata_lookup.get_contract("VND-001")
+  downloads contracts.json
+  finds SOW-2024-003
+  returns contract with agreed_rates
+        |
+        v
+verification_agent now knows:
+  contracted rate for data_engineering = 1,200
+  invoice charged                      = 1,500
+  difference                           = 300/hr * 80hrs = 24,000 overbilling
