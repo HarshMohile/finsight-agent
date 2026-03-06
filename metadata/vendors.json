@@ -1,0 +1,12 @@
+[
+  {
+    "vendor_id": "VND-001",
+    "legal_name": "Oroboros Solutions Pvt Ltd",
+    "gstin": "29AABCT1332L1ZU",
+    "bank_account": "50200012345678",
+    "ifsc": "HDFC0001234",
+    "approved_categories": ["data_engineering", "cloud", "ai_ml"],
+    "onboarded_date": "2023-06-01",
+    "status": "active"
+  }
+]

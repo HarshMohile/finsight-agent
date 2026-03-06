@@ -1,0 +1,47 @@
+[project]
+name = "finsight-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "azure-identity>=1.25.2",
+    "azure-storage-blob>=12.28.0",
+    "azure-storage-file-datalake>=12.23.0",
+    "fastapi>=0.134.0",
+    "langchain-core>=1.2.16",
+    "langchain-groq>=1.1.2",
+    "langgraph>=1.0.10",
+    "langsmith>=0.7.9",
+    "pandas>=3.0.1",
+    "pdfplumber>=0.11.9",
+    "pyarrow>=23.0.1",
+    "pydantic>=2.12.5",
+    "python-dotenv>=1.2.1",
+    "sendgrid>=6.12.5",
+    "uvicorn>=0.41.0",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+    "pytest>=9.0.2",
+    "ruff>=0.15.4",
+]
+
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+]
+ignore = ["E501"]  # don't enforce line length strictly
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
