@@ -18,7 +18,6 @@ logger = logging.getLogger("finsight.field_verifier")
 # 80 chosen because it allows natural variations
 # e.g. "Oroboros Solutions" vs "Oroboros Solutions Pvt Ltd"
 SIMILARITY_THRESHOLD = 80
-DATE_FIELDS = {"invoice_date", "due_date"}
 
 
 # Fields that must be verified — hallucination here is critical
