@@ -101,64 +101,33 @@ prints DataFrame preview
 
 
 
-raw_text enters supervisor
-        |
-        v
+START
+  |
+  v
 extraction_agent
-  LLM extracts structured data
-  writes extraction_output
-  writes extraction_status
-        |
-        v
-supervisor_route() called
-  extraction_status == "failed"? ──────────────────> route_to_failed
-  else                                                      |
-        |                                                   v
-        v                                          log to LangSmith
-validation_agent                                   email SME
-  math_checker_tool                                 write to failed queue
-  date_checker_tool                                END
-  duplicate_checker_tool
-  writes validation_output
-  writes math_check
-  writes date_check
-  writes duplicate_check
-  writes validation_status
-        |
-        v
-supervisor_route() called
-  validation_status == "fail"
-  AND math_check == "fail"? ───────────────────────> route_to_failed
-  else
-        |
-        v
-hallucination_guard
-  field_verifier_tool on every field
-  writes hallucination_report
-  writes hallucinated_fields
-  writes guard_status
-        |
-        v
-supervisor_route() called
-  computes overall_confidence
-  applies penalties per issue
-        |
-        |── overall_confidence >= 0.85
-        |   AND no reasons ──────────────────────> route_to_approved
-        |                                          clean_output_for_client()
-        |                                          write processed Parquet
-        |                                          END
-        |
-        |── overall_confidence >= 0.65 ──────────> route_to_review
-        |                                          ReviewQueueItem
-        |                                          write to review JSON
-        |                                          END
-        |
-        └── overall_confidence < 0.65 ───────────> route_to_failed
-                                                   log to LangSmith
-                                                   email SME
-                                                   END
-
+  reads raw_text from state
+  returns extracted fields
+  writes to state
+  |
+  v
+investigation_agent (ReAct loop)
+  reads extracted fields from state
+  decides which tools to call
+  calls tools, reads results
+  calls risk_scorer last
+  writes all findings to state
+  |
+  v
+supervisor
+  reads risk score + recommendation
+  routes to one of four outcomes:
+    approve  -> write to processed/
+    review   -> write to review_queue/
+    reject   -> write to failed/
+    escalate -> write to failed/ + notify
+  |
+  v
+END
 
 
 

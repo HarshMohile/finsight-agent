@@ -18,6 +18,8 @@ dependencies = [
     "pyarrow>=23.0.1",
     "pydantic>=2.12.5",
     "python-dotenv>=1.2.1",
+    "python-multipart>=0.0.22",
+    "rapidfuzz>=3.14.3",
     "sendgrid>=6.12.5",
     "uvicorn>=0.41.0",
 ]
