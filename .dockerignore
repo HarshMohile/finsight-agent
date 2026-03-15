@@ -1,0 +1,12 @@
+.env
+.venv
+__pycache__
+.git
+.gitignore
+metadata/*.json
+data/raw_pdfs/
+data/parquet/
+*.pyc
+*.pyo
+.pytest_cache
+tests/conftest.py
