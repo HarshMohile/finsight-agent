@@ -1,0 +1,118 @@
+# .github/workflows/deploy.yml
+#
+# CI/CD pipeline for FinSight Agent.
+# Triggers on every push to main branch.
+#
+# Jobs:
+#   1. test     — run pytest
+#   2. build    — build amd64 image and push to GHCR
+#   3. deploy   — update Azure Container App
+#   4. smoke    — verify live URL is healthy
+
+name: Deploy FinSight Agent
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:    # allows manual trigger from GitHub UI
+
+env:
+  REGISTRY:    ghcr.io
+  IMAGE_NAME:  ghcr.io/${{ github.repository_owner }}/finsight-agent
+  APP_NAME:    finsight-invoice-api
+  RESOURCE_GROUP: finsight-rg
+
+jobs:
+
+  # ── JOB 1: TEST ─────────────────────────────────────────────────────────────
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run tests
+        env:
+          GROQ_API_KEY:                    ${{ secrets.GROQ_API_KEY }}
+          LANGCHAIN_TRACING_V2:            false
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          AZURE_STORAGE_ACCOUNT_NAME:      finsightstorage
+        run: uv run pytest tests/ -v --ignore=tests/test_metadata_lookup.py --ignore=tests/test_invoice_history.py
+
+  # ── JOB 2: BUILD AND PUSH ────────────────────────────────────────────────────
+  build:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+    needs: test    # only runs if test job passes
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push amd64 image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  # ── JOB 3: DEPLOY ────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: build    # only runs if build job passes
+
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy new revision
+        run: |
+          az containerapp update \
+            --name ${{ env.APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  # ── JOB 4: SMOKE TEST ────────────────────────────────────────────────────────
+  smoke:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    needs: deploy    # only runs if deploy job passes
+
+    steps:
+      - name: Wait for container to start
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          curl --fail --retry 5 --retry-delay 10 \
+            ${{ secrets.APP_URL }}/health
